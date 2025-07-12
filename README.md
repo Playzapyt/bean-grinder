@@ -40,7 +40,7 @@ Grind all the beans.Waste all the dirt.Use all the seeds.Bring the end of the wo
 
 ✨ Made With
 
-HTML, JavaScript
+HTML
 
 Beans
 
