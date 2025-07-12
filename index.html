@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Baked Beans World Ender - Upgraded</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f2a365, #fbc687);
+    color: #333;
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 {
+    margin-top: 20px;
+    text-shadow: 2px 2px 4px #ba5f00;
+  }
+  #beans-count {
+    font-size: 1.5rem;
+    font-weight: bold;
+    position: fixed;
+    top: 10px;
+    right: 20px;
+    background: #f5f5dc;
+    border: 2px solid #6ba84e;
+    padding: 8px 12px;
+    border-radius: 12px;
+    user-select: none;
+    z-index: 10;
+  }
+  #tabs {
+    margin: 20px 0 10px 0;
+    display: flex;
+    gap: 12px;
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 2px solid #b78900;
+    background: #f9d371;
+    cursor: pointer;
+    font-weight: 600;
+    user-select: none;
+    box-shadow: 0 4px #b78900;
+    transition: background 0.2s;
+  }
+  .tab-btn:hover {
+    background: #ffd95c;
+  }
+  .tab-btn.active {
+    background: #f0b300;
+    box-shadow: none;
+    cursor: default;
+  }
+  #message {
+    min-height: 30px;
+    margin-top: 10px;
+    font-style: italic;
+    color: #5a2a00;
+    height: 30px;
+  }
+
+  /* Shared container for pages */
+  .page {
+    display: none;
+    width: 90%;
+    max-width: 700px;
+  }
+  .page.active {
+    display: block;
+  }
+
+  /* Resource bars */
+  #resource-bars {
+    margin-bottom: 15px;
+  }
+  .bar-container {
+    margin: 10px 0;
+  }
+  .bar-label {
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .bar {
+    width: 100%;
+    background: #ddd;
+    border-radius: 8px;
+    height: 24px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #6ba84e, #3c7a27);
+    transition: width 0.3s ease;
+  }
+
+  /* Grind button */
+  #grind-btn {
+    font-size: 1.3rem;
+    background: #f7bb3f;
+    border: none;
+    padding: 20px 60px;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: 0 5px #b77f00;
+    user-select: none;
+  }
+  #grind-btn:active {
+    box-shadow: 0 2px #b77f00;
+    transform: translateY(3px);
+  }
+
+  /* Upgrades */
+  #upgrades-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(250px,1fr));
+    gap: 15px;
+  }
+  .upgrade-btn {
+    background: #f9d371;
+    border: 2px solid #c49a00;
+    border-radius: 12px;
+    padding: 12px 15px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 4px #b78900;
+    transition: background 0.2s;
+    text-align: left;
+  }
+  .upgrade-btn:hover:not(:disabled) {
+    background: #ffd95c;
+  }
+  .upgrade-btn:disabled {
+    background: #eee;
+    color: #aaa;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .upgrade-desc {
+    font-size: 0.9rem;
+    color: #613b00;
+    display: block;
+    margin-top: 5px;
+  }
+
+  /* Achievements */
+  #achievements-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 2px solid #c49a00;
+    border-radius: 12px;
+    background: #fff8db;
+    padding: 15px;
+  }
+  .achievement {
+    border-bottom: 1px solid #d6b300;
+    padding: 8px 5px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    color: #613b00;
+  }
+  .achievement:last-child {
+    border-bottom: none;
+  }
+  .achievement.locked {
+    color: #bbb;
+    font-style: italic;
+  }
+  .achievement.unlocked {
+    color: #2d7d19;
+  }
+  .achievement .status {
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  /* Notifications */
+  #notif {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffd95c;
+    border: 2px solid #c49a00;
+    border-radius: 12px;
+    padding: 12px 25px;
+    font-weight: 700;
+    box-shadow: 0 4px #b78900;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    z-index: 20;
+  }
+  #notif.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+</style>
+</head>
+<body>
+
+<h1>Baked Beans World Ender - Upgraded</h1>
+
+<div id="beans-count">Beans: 0 B</div>
+
+<div id="tabs">
+  <button class="tab-btn active" data-tab="game">Game</button>
+  <button class="tab-btn" data-tab="upgrades">Upgrades</button>
+  <button class="tab-btn" data-tab="achievements">Achievements</button>
+</div>
+
+<!-- Game Page -->
+<div class="page active" id="page-game">
+  <div id="resource-bars">
+    <div class="bar-container">
+      <div class="bar-label">Dirt <span id="dirt-count">1,000,000</span></div>
+      <div class="bar"><div id="dirt-bar" class="bar-fill"></div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label">Seeds <span id="seeds-count">1,000,000</span></div>
+      <div class="bar"><div id="seeds-bar" class="bar-fill"></div></div>
+    </div>
+  </div>
+
+  <button id="grind-btn">Hold to Grind Beans</button>
+  <div id="message"></div>
+</div>
+
+<!-- Upgrades Page -->
+<div class="page" id="page-upgrades">
+  <div id="upgrades-list"></div>
+</div>
+
+<!-- Achievements Page -->
+<div class="page" id="page-achievements">
+  <div id="achievements-list"></div>
+</div>
+
+<div id="notif"></div>
+
+<script>
+  // Game data
+  let beans = 0;
+  let dirt = 1000000;
+  let seeds = 1000000;
+
+  // Progress and max for bars
+  const MAX_DIRT = 1000000;
+  const MAX_SEEDS = 1000000;
+
+  // Grind variables
+  let grinding = false;
+  let grindProgress = 0;
+  let grindSpeed = 1; // base 1 second to grind one bean
+  let grindSpeedMultiplier = 1; // Upgrades affect this
+
+  // Worker data
+  let workers = 0;
+  let workerEfficiency = 1; // multiplier for beans per worker grind
+
+  // Upgrade definitions
+  const upgrades = [
+    {
+      id: 'faster_grind',
+      name: 'Faster Grinding',
+      desc: 'Grind speed 10% faster',
+      cost: { dirt: 10000, seeds: 8000 },
+      apply() { grindSpeedMultiplier *= 0.9; },
+      count: 0,
+      maxCount: 10,
+    },
+    {
+      id: 'hire_worker',
+      name: 'Hire Worker',
+      desc: 'Hire a worker to grind beans automatically',
+      cost: { dirt: 20000, seeds: 15000 },
+      apply() { workers += 1; },
+      count: 0,
+      maxCount: 100,
+    },
+    {
+      id: 'worker_upgrade',
+      name: 'Upgrade Worker',
+      desc: 'Workers grind 10% faster',
+      cost: { dirt: 30000, seeds: 25000 },
+      apply() { workerEfficiency *= 1.1; },
+      count: 0,
+      maxCount: 20,
+    },
+    {
+      id: 'coffee_machine',
+      name: 'Coffee Machine',
+      desc: '+10% grind speed',
+      cost: { dirt: 50000, seeds: 40000 },
+      apply() { grindSpeedMultiplier *= 0.9; },
+      count: 0,
+      maxCount: 5,
+    },
+    {
+      id: 'better_seeds',
+      name: 'Better Seeds',
+      desc: 'Reduce seeds needed per bean by 10%',
+      cost: { dirt: 40000, seeds: 45000 },
+      apply() { seedCostMultiplier *= 0.9; },
+      count: 0,
+      maxCount: 10,
+    },
+    {
+      id: 'dirt_fertilizer',
+      name: 'Dirt Fertilizer',
+      desc: 'Regenerate dirt slowly',
+      cost: { dirt: 60000, seeds: 50000 },
+      apply() { dirtRegenActive = true; },
+      count: 0,
+      maxCount: 1,
+    },
+    {
+      id: 'bean_storage',
+      name: 'Bean Storage',
+      desc: 'Increase max beans displayed',
+      cost: { dirt: 70000, seeds: 60000 },
+      apply() { maxBeansDisplay += 10000; },
+      count: 0,
+      maxCount: 5,
+    },
+    {
+      id: 'auto_grinder',
+      name: 'Automatic Grinder',
+      desc: 'Auto grind beans slowly',
+      cost: { dirt: 80000, seeds: 70000 },
+      apply() { autoGrindActive = true; },
+      count: 0,
+      maxCount: 1,
+    },
+    {
+      id: 'bean_multiplier',
+      name: 'Bean Multiplier',
+      desc: 'Beans per grind +1',
+      cost: { dirt: 90000, seeds: 85000 },
+      apply() { beansPerGrind += 1; },
+      count: 0,
+      maxCount: 10,
+    },
+    {
+      id: 'seed_planter',
+      name: 'Seed Planter',
+      desc: 'Auto gain seeds',
+      cost: { dirt: 100000, seeds: 90000 },
+      apply() { autoSeedsActive = true; },
+      count: 0,
+      maxCount: 1,
+    },
+    {
+      id: 'dirt_excavator',
+      name: 'Dirt Excavator',
+      desc: 'Auto gain dirt',
+      cost: { dirt: 110000, seeds: 100000 },
+      apply() { autoDirtActive = true; },
+      count: 0,
+      maxCount: 1,
+    },
+    {
+      id: 'grind_gloves',
+      name: 'Grind Master Gloves',
+      desc: 'Grind speed 20% faster',
+      cost: { dirt: 150000, seeds: 130000 },
+      apply() { grindSpeedMultiplier *= 0.8; },
+      count: 0,
+      maxCount: 5,
+    },
+    {
+      id: 'worker_training',
+      name: 'Worker Efficiency Training',
+      desc: 'Workers produce +50% beans',
+      cost: { dirt: 180000, seeds: 160000 },
+      apply() { workerEfficiency *= 1.5; },
+      count: 0,
+      maxCount: 3,
+    },
+    {
+      id: 'bean_market',
+      name: 'Bean Market',
+      desc: 'Sell beans for seeds & dirt',
+      cost: { dirt: 200000, seeds: 180000 },
+      apply() { beanMarketUnlocked = true; },
+      count: 0,
+      maxCount: 1,
+    },
+  ];
+
+  // Cost multiplier for seeds consumption per bean
+  let seedCostMultiplier = 1;
+
+  // Dirt regeneration flag
+  let dirtRegenActive = false;
+
+  // Auto grind flag
+  let autoGrindActive = false;
+
+  // Beans per grind
+  let beansPerGrind = 1;
+
+  // Auto seeds and dirt gain
+  let autoSeedsActive = false;
+  let autoDirtActive = false;
+
+  // Max beans displayed
+  let maxBeansDisplay = 10000;
+
+  // Bean market unlocked flag
+  let beanMarketUnlocked = false;
+
+  // Achievements definitions
+  const achievements = [
+    { id: 'first_bean', name: 'First Bean', desc: 'Grind your first bean', condition: () => beans >= 1, unlocked: false },
+    { id: 'hundred_beans', name: 'Bean Counter', desc: 'Reach 100 beans', condition: () => beans >= 100, unlocked: false },
+    { id: 'first_worker', name: 'Manager', desc: 'Hire your first worker', condition: () => workers >= 1, unlocked: false },
+    { id: 'thousand_beans', name: 'Bean Grinder', desc: 'Grind 1,000 beans', condition: () => totalBeansGrinded >= 1000, unlocked: false },
+    { id: 'ten_workers', name: 'Supervisor', desc: 'Have 10 workers', condition: () => workers >= 10, unlocked: false },
+    { id: 'upgrade_faster_5', name: 'Speedy Grinder', desc: 'Buy Faster Grinding 5 times', condition: () => upgrades.find(u => u.id === 'faster_grind').count >= 5, unlocked: false },
+    { id: 'hundred_k_beans', name: 'Bean Tycoon', desc: 'Reach 100,000 beans', condition: () => beans >= 100000, unlocked: false },
+    { id: 'buy_coffee', name: 'Caffeinated', desc: 'Buy Coffee Machine upgrade', condition: () => upgrades.find(u => u.id === 'coffee_machine').count > 0, unlocked: false },
+    { id: 'regen_dirt', name: 'Green Thumb', desc: 'Activate Dirt Fertilizer', condition: () => dirtRegenActive, unlocked: false },
+    { id: 'grind_10min', name: 'Endurance Grinder', desc: 'Grind for 10 minutes straight', condition: () => grind10MinCompleted, unlocked: false },
+    { id: 'ten_thousand_total', name: 'Bean Millionaire', desc: 'Produce 10,000 beans total', condition: () => totalBeansGrinded >= 10000, unlocked: false },
+    { id: 'all_upgrades', name: 'Master Upgrader', desc: 'Unlock all upgrades', condition: () => upgrades.every(u => u.count > 0), unlocked: false },
+    { id: 'million_beans', name: 'Bean Legend', desc: 'Grind 1,000,000 beans total', condition: () => totalBeansGrinded >= 1000000, unlocked: false },
+    { id: 'max_resources', name: 'Resource Hoarder', desc: 'Have max dirt and seeds', condition: () => dirt >= MAX_DIRT && seeds >= MAX_SEEDS, unlocked: false },
+    { id: 'bean_market', name: 'Entrepreneur', desc: 'Unlock Bean Market', condition: () => beanMarketUnlocked, unlocked: false },
+    { id: 'auto_seeds', name: 'Seed Planter', desc: 'Unlock auto seed gain', condition: () => autoSeedsActive, unlocked: false },
+    { id: 'auto_dirt', name: 'Dirt Excavator', desc: 'Unlock auto dirt gain', condition: () => autoDirtActive, unlocked: false },
+    { id: 'grind_gloves', name: 'Gloves On', desc: 'Buy Grind Master Gloves', condition: () => upgrades.find(u => u.id === 'grind_gloves').count > 0, unlocked: false },
+    { id: 'worker_training', name: 'Efficient Team', desc: 'Unlock Worker Efficiency Training', condition: () => upgrades.find(u => u.id === 'worker_training').count > 0, unlocked: false },
+    { id: 'auto_grinder', name: 'Automaton', desc: 'Unlock Automatic Grinder', condition: () => autoGrindActive, unlocked: false },
+  ];
+
+  // Total beans grinded (all time)
+  let totalBeansGrinded = 0;
+
+  // Grind timer for 10 minutes achievement
+  let grindTimer = 0;
+  let grind10MinCompleted = false;
+
+  // Notification system
+  const notifEl = document.getElementById('notif');
+  let notifTimeout;
+
+  function showNotification(text) {
+    notifEl.textContent = text;
+    notifEl.classList.add('show');
+    clearTimeout(notifTimeout);
+    notifTimeout = setTimeout(() => {
+      notifEl.classList.remove('show');
+    }, 3000);
+  }
+
+  // DOM Elements
+  const beansCountEl = document.getElementById('beans-count');
+  const dirtCountEl = document.getElementById('dirt-count');
+  const seedsCountEl = document.getElementById('seeds-count');
+  const dirtBarEl = document.getElementById('dirt-bar');
+  const seedsBarEl = document.getElementById('seeds-bar');
+  const grindBtn = document.getElementById('grind-btn');
+  const messageEl = document.getElementById('message');
+  const upgradesListEl = document.getElementById('upgrades-list');
+  const achievementsListEl = document.getElementById('achievements-list');
+  const tabs = document.querySelectorAll('.tab-btn');
+  const pages = document.querySelectorAll('.page');
+
+  // Tab switching
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.classList.contains('active')) return;
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      pages.forEach(p => {
+        if (p.id === 'page-' + target) {
+          p.classList.add('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+    });
+  });
+
+  // Update resource bars UI
+  function updateResourceBars() {
+    dirtCountEl.textContent = dirt.toLocaleString();
+    seedsCountEl.textContent = seeds.toLocaleString();
+    dirtBarEl.style.width = `${(dirt / MAX_DIRT) * 100}%`;
+    seedsBarEl.style.width = `${(seeds / MAX_SEEDS) * 100}%`;
+  }
+
+  // Update beans count UI
+  function updateBeans() {
+    beansCountEl.textContent = 'Beans: ' + beans.toLocaleString() + ' B';
+  }
+
+  // Upgrade list rendering and logic
+  function renderUpgrades() {
+    upgradesListEl.innerHTML = '';
+    upgrades.forEach((upg) => {
+      const btn = document.createElement('button');
+      btn.className = 'upgrade-btn';
+      btn.disabled = !canBuyUpgrade(upg);
+      btn.innerHTML = `<strong>${upg.name}</strong><br>
+        <span class="upgrade-desc">${upg.desc}</span><br>
+        Cost: Dirt ${upg.cost.dirt.toLocaleString()}, Seeds ${upg.cost.seeds.toLocaleString()}<br>
+        Owned: ${upg.count}/${upg.maxCount}`;
+      btn.addEventListener('click', () => {
+        buyUpgrade(upg);
+      });
+      upgradesListEl.appendChild(btn);
+    });
+  }
+
+  function canBuyUpgrade(upg) {
+    return (
+      dirt >= upg.cost.dirt &&
+      seeds >= upg.cost.seeds &&
+      upg.count < upg.maxCount
+    );
+  }
+
+  function buyUpgrade(upg) {
+    if (!canBuyUpgrade(upg)) {
+      messageEl.textContent = "Not enough resources or maxed out.";
+      return;
+    }
+    dirt -= upg.cost.dirt;
+    seeds -= upg.cost.seeds;
+    upg.count++;
+    upg.apply();
+    messageEl.textContent = `Bought ${upg.name}!`;
+    showNotification(`Upgrade purchased: ${upg.name}`);
+    renderUpgrades();
+    updateResourceBars();
+    checkAchievements();
+  }
+
+  // Grinding logic
+  let grindInterval;
+  let grindHoldStart;
+
+  grindBtn.addEventListener('mousedown', startGrinding);
+  grindBtn.addEventListener('touchstart', startGrinding);
+
+  grindBtn.addEventListener('mouseup', stopGrinding);
+  grindBtn.addEventListener('mouseleave', stopGrinding);
+  grindBtn.addEventListener('touchend', stopGrinding);
+  grindBtn.addEventListener('touchcancel', stopGrinding);
+
+  function startGrinding() {
+    if (grinding) return;
+    grinding = true;
+    grindProgress = 0;
+    grindHoldStart = Date.now();
+    messageEl.textContent = 'Grinding...';
+  }
+
+  function stopGrinding() {
+    if (!grinding) return;
+    grinding = false;
+    grindProgress = 0;
+    messageEl.textContent = '';
+    grindTimer = 0; // reset 10 minute counter if stopped early
+  }
+
+  // Achievements check function
+  function checkAchievements() {
+    achievements.forEach(a => {
+      if (!a.unlocked && a.condition()) {
+        a.unlocked = true;
+        showNotification(`Achievement Unlocked: ${a.name}`);
+        renderAchievements();
+      }
+    });
+  }
+
+  // Render achievements list
+  function renderAchievements() {
+    achievementsListEl.innerHTML = '';
+    achievements.forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'achievement ' + (a.unlocked ? 'unlocked' : 'locked');
+      div.innerHTML = `<strong>${a.name}</strong><br>${a.desc}`;
+      achievementsListEl.appendChild(div);
+    });
+  }
+
+  // Game loop (ticks every 100ms)
+  let lastTick = Date.now();
+
+  function gameLoop() {
+    const now = Date.now();
+    const delta = (now - lastTick) / 1000; // seconds elapsed
+    lastTick = now;
+
+    if (grinding) {
+      grindProgress += delta * grindSpeedMultiplier;
+      if (grindProgress >= grindSpeed) {
+        grindProgress = 0;
+        beans += beansPerGrind;
+        totalBeansGrinded += beansPerGrind;
+        updateBeans();
+        checkAchievements();
+      }
+      grindTimer += delta;
+      if (!grind10MinCompleted && grindTimer >= 600) {
+        grind10MinCompleted = true;
+        checkAchievements();
+      }
+    }
+
+    // Workers grind automatically
+    if (workers > 0) {
+      const beansProduced = delta * workers * workerEfficiency * beansPerGrind;
+      beans += beansProduced;
+      totalBeansGrinded += beansProduced;
+      updateBeans();
+      checkAchievements();
+    }
+
+    // Dirt regeneration
+    if (dirtRegenActive) {
+      dirt = Math.min(dirt + delta * 50, MAX_DIRT);
+      updateResourceBars();
+    }
+
+    // Auto seed and dirt gains
+    if (autoSeedsActive) {
+      seeds = Math.min(seeds + delta * 30, MAX_SEEDS);
+      updateResourceBars();
+    }
+    if (autoDirtActive) {
+      dirt = Math.min(dirt + delta * 30, MAX_DIRT);
+      updateResourceBars();
+    }
+
+    updateResourceBars();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Initial render
+  renderUpgrades();
+  renderAchievements();
+  updateBeans();
+  updateResourceBars();
+
+  // Start the game loop
+  gameLoop();
+
+</script>
+<style>
+  /* Minimal CSS for the upgrade and achievements pages */
+  #upgrades-list, #achievements-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .upgrade-btn {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #666;
+    width: 180px;
+    cursor: pointer;
+    background: #222;
+    color: #fff;
+    font-size: 14px;
+  }
+  .upgrade-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .achievement {
+    width: 200px;
+    padding: 6px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    background: #333;
+    color: #eee;
+    font-size: 13px;
+  }
+  .achievement.locked {
+    filter: grayscale(100%);
+    opacity: 0.5;
+  }
+  .achievement.unlocked {
+    border: 2px solid #8f8;
+  }
+  #notif {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #090;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+  }
+  #notif.show {
+    opacity: 1;
+  }
+</style>
